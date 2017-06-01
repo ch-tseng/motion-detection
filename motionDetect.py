@@ -14,7 +14,7 @@ lcd = ILI9341(LCD_size_w=240, LCD_size_h=320, LCD_Rotate=270)
 dislpayType = 2  #1--> Contour  2--> Image
 markType = 3  #1--> Draw edge  2-->Box selection  3--> Draw & Box
 
-numInput = raw_input("Please enter your gesture number: ")
+numInput = raw_input("Please keyin your gesture number (Enter to skip): ")
 
 lcd = ILI9341(LCD_size_w=240, LCD_size_h=320, LCD_Rotate=270)
 
