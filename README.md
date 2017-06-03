@@ -8,5 +8,7 @@ you can supply a number for the "Please keyin your gesture number (Enter to skip
 those images will be saved to the imgGesture folder. <br />
 If you don't want to create the images, just hit "Enter" to skip. <br />
 
+![alt tag](https://github.com/ch-tseng/motion-detection/blob/master/t0.png)
+<br /><br />
 ![alt tag](https://github.com/ch-tseng/motion-detection/blob/master/imgGesture/5/G1.png)
 ![alt tag](https://github.com/ch-tseng/motion-detection/blob/master/imgGesture/5/color-11.png)
