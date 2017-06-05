@@ -4,6 +4,7 @@
 import numpy as np
 import cv2
 import os
+import time
 from libraryCH.device.lcd import ILI9341
 
 #----- Your configuration ------------------------
@@ -34,17 +35,23 @@ if(not numInput==""):  createFolder(imgFolder)
 
 cap = cv2.VideoCapture(0)
 
-#k=np.ones((3,3),np.uint8)
-
 t0 = cap.read()[1]
+grey1 = cv2.cvtColor(t0, cv2.COLOR_BGR2GRAY)
+blur1 = cv2.GaussianBlur(grey1,(7,7),0)
+
 t1 = cap.read()[1]
 
 i = 0
-while(True):
-    grey1 = cv2.cvtColor(t0, cv2.COLOR_BGR2GRAY)
-    grey2 = cv2.cvtColor(t1, cv2.COLOR_BGR2GRAY)
+updateT0 = False
 
-    blur1 = cv2.GaussianBlur(grey1,(7,7),0)
+while(True):
+
+    if(updateT0==True):
+        t0 = cap.read()[1]
+        grey1 = cv2.cvtColor(t0, cv2.COLOR_BGR2GRAY)
+        blur1 = cv2.GaussianBlur(grey1,(7,7),0)
+
+    grey2 = cv2.cvtColor(t1, cv2.COLOR_BGR2GRAY)
     blur2 = cv2.GaussianBlur(grey2,(5,5),0)
     zeros = np.zeros(t0.shape[:2], dtype = "uint8")
 
@@ -62,7 +69,7 @@ while(True):
         layer = np.zeros(t0.shape[:2], dtype = "uint8")
         markColor = 255
     elif(dislpayType==2):
-        layer = t0
+        layer = t1
         markColor = (0,255,0)
 
     if(len(areas)>0):
@@ -76,12 +83,18 @@ while(True):
             if(markType==2 or markType==3):
                 cv2.rectangle(layer,(x,y),(x+w,y+h), markColor,2)
 
+        #if(areas[max_index]>200000):
+        if((w>600 and h>400) and areas[max_index]>80000):
+            updateT0 = True
+        else:
+            updateT0 = False
+
     #lcd.displayImg(layer)
-    #lcd.displayImg(np.vstack((layer, cv2.merge([zeros, zeros, th]), cv2.merge([zeros, d, zeros]))))
     layer2 = np.vstack((cv2.merge([zeros, d, zeros]), cv2.merge([zeros, zeros, th]), layer ))
+    #layer2 = np.vstack((cv2.merge([zeros, grey1, zeros]), cv2.merge([zeros, grey2, zeros]), layer))
     lcd.displayImg(layer2)
 
-    print(i)
+    print("i={}, (w,h)=({},{}), area={}".format(i, w, h, areas[max_index]))
 
     if(not numInput==""): 
         #Cutted = t0[y:y + h, x:x + w]
@@ -91,7 +104,7 @@ while(True):
         cv2.imwrite(imgFolder + "color-"+str(i)+".png", layer2)
     #print("dilated.shape={}".format(dilated.shape))
 
-    t0=t1
+    #t0=t1
     t1=cap.read()[1]    
 
     if cv2.waitKey(5) == 27 :
