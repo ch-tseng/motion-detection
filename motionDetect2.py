@@ -7,16 +7,28 @@ import os
 import time
 from libraryCH.device.lcd import ILI9341
 
-#----- Your configuration ------------------------
+#----- Your configuration ---------------------------------------------------------------
+
+# 如果您使用HDMI螢幕, 請將displayDevice設為1, 若像本文一樣使用TFT LCD接到RPI, 請設為2
 displayDevice = 2  # 1--> LCD monitor  2--> ILI9341 TFT
 
+#如果您使用TFT LCD接到RPI, 可調整其LCD_size_w, LCD_size_h, LCD_Rotate
 lcd = ILI9341(LCD_size_w=240, LCD_size_h=320, LCD_Rotate=180)
 
+#最終畫面要顯示的種類 dislpayType, 物體外形或影像, 您可以分別都試看看.
 dislpayType = 2  #1--> Contour  2--> Image
+
+#抓取到的移動物體的標示方法
 markType = 3  #1--> Draw edge  2-->Box selection  3--> Draw & Box
 
+#-----------------------------------------------------------------------------------------
+
+#numInput 使用於Gesture的圖片製作.
+#程式剛開始, 請使用者輸入手勢代表的數字或字母, 程式會將抓取到的圖片以該手勢符號儲存在imgGesture資料夾下
+#若直接按Enter不輸入, 則不會執行圖片儲存動作
 numInput = raw_input("Please keyin your gesture number (Enter to skip): ")
 
+#--Functions------------------------------------------------------------------------------
 def wait():
     raw_input('Press Enter')
 
@@ -28,6 +40,8 @@ def writeImage(num, img):
     global imgFolder
     imgFile = ("G{}.png".format(num))
     cv2.imwrite(imgFolder + imgFile, img)
+
+#-----------------------------------------------------------------------------------------
 
 imgFolder = ("imgGesture/{}/".format(numInput))
 print ("Images will save to: {}".format(imgFolder))
@@ -89,22 +103,22 @@ while(True):
         else:
             updateT0 = False
 
-    #lcd.displayImg(layer)
     layer2 = np.vstack((cv2.merge([zeros, d, zeros]), cv2.merge([zeros, zeros, th]), layer ))
-    #layer2 = np.vstack((cv2.merge([zeros, grey1, zeros]), cv2.merge([zeros, grey2, zeros]), layer))
-    lcd.displayImg(layer2)
+
+    if(displayDevice==2):
+        lcd.displayImg(layer2)
+    else:
+        cv2.imshow("Display", layer2)
 
     print("i={}, (w,h)=({},{}), area={}".format(i, w, h, areas[max_index]))
 
     if(not numInput==""): 
-        #Cutted = t0[y:y + h, x:x + w]
-        #layer = layer[y:y + h, x:x + w]
-        #cv2.imwrite(imgFolder + "color-"+str(i)+".png", Cutted)
-        #writeImage(i, layer)
-        cv2.imwrite(imgFolder + "color-"+str(i)+".png", layer2)
-    #print("dilated.shape={}".format(dilated.shape))
+        Cutted = t0[y:y + h, x:x + w]
+        layer = layer[y:y + h, x:x + w]
+        cv2.imwrite(imgFolder + "color-"+str(i)+".png", Cutted)
+        writeImage(i, layer)
+        #cv2.imwrite(imgFolder + "color-"+str(i)+".png", layer2)
 
-    #t0=t1
     t1=cap.read()[1]    
 
     if cv2.waitKey(5) == 27 :
