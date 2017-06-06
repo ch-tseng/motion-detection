@@ -4,7 +4,6 @@
 import numpy as np
 import cv2
 import os
-import time
 from libraryCH.device.lcd import ILI9341
 
 #----- Your configuration ---------------------------------------------------------------
@@ -21,6 +20,9 @@ dislpayType = 2  #1--> Contour  2--> Image
 #抓取到的移動物體的標示方法
 markType = 3  #1--> Draw edge  2-->Box selection  3--> Draw & Box
 
+#在第幾個frame影格才用為base t0(避免web camera自動曝光調整)
+baseFrameT0 = 30
+
 #-----------------------------------------------------------------------------------------
 
 #numInput 使用於Gesture的圖片製作.
@@ -29,6 +31,7 @@ markType = 3  #1--> Draw edge  2-->Box selection  3--> Draw & Box
 numInput = raw_input("Please keyin your gesture number (Enter to skip): ")
 
 #--Functions------------------------------------------------------------------------------
+
 def wait():
     raw_input('Press Enter')
 
@@ -47,27 +50,32 @@ imgFolder = ("imgGesture/{}/".format(numInput))
 print ("Images will save to: {}".format(imgFolder))
 if(not numInput==""):  createFolder(imgFolder)
 
+#是否更新t0 base影格
+updateT0 = False
+
 cap = cv2.VideoCapture(0)
 
 t0 = cap.read()[1]
 grey1 = cv2.cvtColor(t0, cv2.COLOR_BGR2GRAY)
 blur1 = cv2.GaussianBlur(grey1,(7,7),0)
 
+zeros = np.zeros(t0.shape[:2], dtype = "uint8")
+
 t1 = cap.read()[1]
 
 i = 0
-updateT0 = False
-
 while(True):
 
-    if(updateT0==True):
+    #當目前frame影格等於指定值或updateT0=True時，則將t0 update
+    if(i==baseFrameT0-1 or updateT0==True):
         t0 = cap.read()[1]
         grey1 = cv2.cvtColor(t0, cv2.COLOR_BGR2GRAY)
         blur1 = cv2.GaussianBlur(grey1,(7,7),0)
 
     grey2 = cv2.cvtColor(t1, cv2.COLOR_BGR2GRAY)
     blur2 = cv2.GaussianBlur(grey2,(5,5),0)
-    zeros = np.zeros(t0.shape[:2], dtype = "uint8")
+
+   
 
     d = cv2.absdiff(blur1, blur2)
 
@@ -90,34 +98,28 @@ while(True):
         max_index = np.argmax(areas)
         cnt=contours[max_index]
         x,y,w,h = cv2.boundingRect(cnt)
-       # print("area={}, w*h={}".format(areas[max_index], w*h))
         if(areas[max_index]>5000):
             if(markType==1 or markType==3):
                 cv2.drawContours(layer, cnt, -1, markColor, 2)
             if(markType==2 or markType==3):
                 cv2.rectangle(layer,(x,y),(x+w,y+h), markColor,2)
 
-        #if(areas[max_index]>200000):
-        if((w>600 and h>400) and areas[max_index]>80000):
-            updateT0 = True
-        else:
-            updateT0 = False
+    #如果移動中的物件尺寸及面積過大, 則視為曝光值有變動, 需更新t0 base frame
+    if((w>600 and h>400) and areas[max_index]>80000):
+        updateT0 = True
+    else:
+        updateT0 = False
 
     layer2 = np.vstack((cv2.merge([zeros, d, zeros]), cv2.merge([zeros, zeros, th]), layer ))
-
-    if(displayDevice==2):
-        lcd.displayImg(layer2)
-    else:
-        cv2.imshow("Display", layer2)
-
-    print("i={}, (w,h)=({},{}), area={}".format(i, w, h, areas[max_index]))
+    #layer2 = np.vstack((cv2.merge([zeros, grey1, zeros]), cv2.merge([zeros, grey2, zeros]), cv2.merge([zeros, zeros, d]) ))
+    lcd.displayImg(layer2)
 
     if(not numInput==""): 
-        Cutted = t0[y:y + h, x:x + w]
-        layer = layer[y:y + h, x:x + w]
-        cv2.imwrite(imgFolder + "color-"+str(i)+".png", Cutted)
-        writeImage(i, layer)
-        #cv2.imwrite(imgFolder + "color-"+str(i)+".png", layer2)
+        #Cutted = t0[y:y + h, x:x + w]
+        #layer = layer[y:y + h, x:x + w]
+        #cv2.imwrite(imgFolder + "color-"+str(i)+".png", Cutted)
+        #writeImage(i, layer)
+        cv2.imwrite(imgFolder + "color-"+str(i)+".png", layer2)
 
     t1=cap.read()[1]    
 
